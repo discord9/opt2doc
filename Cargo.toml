@@ -1,0 +1,14 @@
+[workspace]
+members = ["derive_rust2md", "rust2md", "test_derive"]
+resolver = "2"
+
+[workspace.dependencies]
+trybuild = "1.0.91"
+proc-macro2 = "1.0.79"
+quote = "1.0.36"
+syn = "2.0.58"
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8.12"
+serde_json = "1.0"
+serde-jsonlines = "0.5.0"
+darling = "0.20.8"
