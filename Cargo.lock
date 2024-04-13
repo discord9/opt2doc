@@ -225,6 +225,7 @@ name = "test_derive"
 version = "0.1.0"
 dependencies = [
  "derive_rust2md",
+ "once_cell",
 ]
 
 [[package]]

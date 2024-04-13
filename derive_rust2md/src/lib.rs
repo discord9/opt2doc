@@ -1,18 +1,23 @@
-use std::collections::HashMap;
-use std::sync::Mutex;
 use darling::ast::NestedMeta;
 use darling::FromMeta;
 use proc_macro::TokenStream;
 use quote::quote;
 use quote::ToTokens;
 use rust2md::{CompsiteMetadata, DocOpts, FieldMetadata};
+use std::collections::HashMap;
+use std::sync::Mutex;
 use syn::Lit::{self, Str};
 use syn::Meta::{self, NameValue};
 use syn::{parse_macro_input, Attribute, Error, Expr, ExprLit, Field, MetaNameValue};
 use syn::{MetaList, Result};
 /// options for the `rust2md` derive macro
-static OPT: once_cell::sync::Lazy<Mutex<DocOpts>> =
-    once_cell::sync::Lazy::new(|| Mutex::new(DocOpts::read_opts()));
+static OPT: once_cell::sync::Lazy<Mutex<DocOpts>> = once_cell::sync::Lazy::new(|| {
+    Mutex::new({
+        let opt = DocOpts::read_opts();
+        opt.touch();
+        opt
+    })
+});
 
 /// `Rust2Md` is a derive macro that generates documentation for end user for i.e. cli options or
 /// config file options.
@@ -54,9 +59,9 @@ pub fn derive_doc(input: TokenStream) -> TokenStream {
         doc: get_doc_comment(&input.attrs),
         fields,
     };
-    
+
     let opt = OPT.lock().unwrap();
-    serde_jsonlines::write_json_lines(opt.tmp_file.clone().unwrap(), vec![compsite]).unwrap();
+    serde_jsonlines::append_json_lines(opt.tmp_file.clone().unwrap(), vec![compsite]).unwrap();
     quote! {}.into()
 }
 
