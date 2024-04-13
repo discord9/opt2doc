@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
     fs::OpenOptions,
-    io::{Read, Write},
+    io::{Read, Seek, Write},
     path::{Path, PathBuf},
 };
 
@@ -61,22 +61,42 @@ impl DocOpts {
         opt
     }
 
-    pub fn touch(&self){
+    pub fn touch(&self) {
         // touch and create(or recreate) the file
-        let _ = OpenOptions::new()
+        let mut file = OpenOptions::new()
             .create(true)
             .write(true)
-            .open(self.tmp_file.clone().unwrap());
+            .open(self.tmp_file.clone().unwrap())
+            .unwrap();
     }
 
     pub fn open_append_tmp_file(&self) -> std::io::Result<std::fs::File> {
         OpenOptions::new()
-            .append(true)
+            .read(true)
+            .write(true)
             .open(self.tmp_file.clone().unwrap())
     }
 
-    pub fn append_to_tmp_file(&self, content: &str) -> std::io::Result<()> {
-        let mut file = self.open_append_tmp_file()?;
-        file.write_all(content.as_bytes())
+    // TODO: use `fs2` for file lock
+    pub fn insert_type(&self, name: String, compsite: CompsiteMetadata) {
+        let mut file = self.open_append_tmp_file().unwrap();
+        let mut buf = String::new();
+        file.read_to_string(&mut buf).unwrap();
+        let mut old: BTreeMap<String, CompsiteMetadata> = if buf.is_empty() {
+            Default::default()
+        } else {
+            serde_json::from_str(&buf).unwrap_or_else(|_| panic!("Can't parse json from {}", buf))
+        };
+
+        old.insert(name.to_string(), compsite);
+        // reset write cursor to the beginning
+        // find out why this could cause serde to fail to parse the json
+        // after some change is applid to type definition
+        file.set_len(0).unwrap();
+        file.seek(std::io::SeekFrom::Start(0)).unwrap();
+
+        file.write_all(serde_json::to_string_pretty(&old).unwrap().as_bytes())
+            .unwrap();
+        file.flush().unwrap();
     }
 }

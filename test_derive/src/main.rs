@@ -1,6 +1,6 @@
 use std::{fs::OpenOptions, sync::Mutex};
 
-use derive_rust2md::Rust2Md;
+use derive_rust2md::{Rust2Md, doc_impl};
 use once_cell::sync::Lazy;
 
 fn main() {
@@ -10,10 +10,9 @@ fn main() {
 
 
 /// Test opt
-#[cfg(doc)]
 #[derive(Debug, Rust2Md)]
 pub struct Opt {
-    /// 1234241  
+    /// afa
     name: String,
     /// The timezone of the system
     #[rust2md(

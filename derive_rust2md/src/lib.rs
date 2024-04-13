@@ -40,7 +40,7 @@ static OPT: once_cell::sync::Lazy<Mutex<DocOpts>> = once_cell::sync::Lazy::new(|
 #[proc_macro_derive(Rust2Md, attributes(rust2md))]
 pub fn derive_doc(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as syn::DeriveInput);
-
+    let input_ident = input.ident.clone();
     let mut fields = Vec::new();
     // let first deal with the struct fields
     if let syn::Data::Struct(s) = input.data {
@@ -60,8 +60,22 @@ pub fn derive_doc(input: TokenStream) -> TokenStream {
         fields,
     };
 
-    let opt = OPT.lock().unwrap();
-    serde_jsonlines::append_json_lines(opt.tmp_file.clone().unwrap(), vec![compsite]).unwrap();
+    let out_str = serde_json::to_string_pretty(&compsite).unwrap();
+    quote! {
+        doc_impl!(#out_str);
+    }
+    .into()
+}
+
+#[proc_macro]
+pub fn doc_impl(input: TokenStream) -> TokenStream {
+    // unescape the input since it's a string that got escaped
+    let s: String = serde_json::from_str(&input.to_string()).unwrap();
+
+    let compsite: CompsiteMetadata = serde_json::from_str(&s).unwrap();
+    OPT.lock()
+        .unwrap()
+        .insert_type(compsite.name.clone(), compsite);
     quote! {}.into()
 }
 
