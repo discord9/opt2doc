@@ -1,7 +1,6 @@
-use std::{fs::OpenOptions, sync::Mutex};
-
-use derive_opt2doc::{doc_impl, Opt2Doc};
-use once_cell::sync::Lazy;
+#![allow(unused)]
+// TODO: use trybuild for macro test
+use derive_opt2doc::Opt2Doc;
 
 fn main() {
     println!("Hello, world!");
@@ -13,18 +12,13 @@ pub struct Opt {
     /// afa a
     name: String,
     /// The timezone of the system
-    #[opt2doc(
-        rename = "cfg_name", 
-        default = "UTC", 
-        typ = "String"
-    )]
+    #[opt2doc(rename = "cfg_name", default = "UTC", typ = "String")]
     id: usize,
-    inner: InnerOpt
+    inner: InnerOpt,
 }
 
-
 #[derive(Debug, Opt2Doc)]
-pub struct InnerOpt{
+pub struct InnerOpt {
     cfg: bool,
-    ttl: usize
+    ttl: usize,
 }

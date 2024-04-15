@@ -6,10 +6,10 @@ use quote::quote;
 use quote::ToTokens;
 use std::collections::HashMap;
 use std::sync::Mutex;
-use syn::Lit::{self, Str};
-use syn::Meta::{self, NameValue};
+use syn::Lit::{self};
+use syn::Meta::{self};
+use syn::Result;
 use syn::{parse_macro_input, Attribute, Error, Expr, ExprLit, Field, MetaNameValue};
-use syn::{MetaList, Result};
 /// options for the `opt2doc` derive macro
 static OPT: once_cell::sync::Lazy<Mutex<DocOpts>> = once_cell::sync::Lazy::new(|| {
     Mutex::new({
@@ -64,7 +64,7 @@ pub fn derive_doc(input: TokenStream) -> TokenStream {
     // only generate doc if running `cargo doc`
     quote! {
         #[cfg(doc)]
-        doc_impl!(#out_str);
+        derive_opt2doc::doc_impl!(#out_str);
     }
     .into()
 }

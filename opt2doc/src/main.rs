@@ -1,9 +1,20 @@
 use itertools::Itertools;
 use opt2doc::{CompsiteMetadata, DocOpts, FieldMetadata};
 use serde_jsonlines::json_lines;
-use std::{collections::BTreeMap, fs::File, io::Read, ops::Deref};
+use std::{collections::BTreeMap, fs::File, io::Write};
 
 fn main() {
+    // first call cargo doc
+    let output = std::process::Command::new("cargo")
+        .arg("doc")
+        .spawn()
+        .unwrap()
+        .wait()
+        .unwrap();
+    if !output.success() {
+        println!("Failed to run `cargo doc`, exiting now");
+        return;
+    }
     // 1. read opt2doc.toml and parse into DocOpts
     // 2. read tmp file, and using json lines to
     // compact them into BTreeMap<(Name, Compsite)>
@@ -45,35 +56,37 @@ fn main() {
         expaned_root.fields = new_fields;
         out_markdown.push(expaned_root);
     }
-    let out_markdown = out_markdown
-        .into_iter()
-        .map(compsite_to_markdown)
-        .join("\n\n");
-    // write to stdout
-    println!("{}", out_markdown);
+    let out_markdown = out_markdown.iter().map(compsite_to_markdown).join("\n\n");
+    // place it on same directory with tmp file
+    let mut loc = opt.tmp_file.unwrap().parent().unwrap().to_path_buf();
+    loc.push("out.md");
+
+    let mut file = File::create(loc).unwrap();
+    file.write_all(out_markdown.as_bytes()).unwrap();
 }
 
+/// expand field with name delimitered by `delimiter`
 fn expand_recur(
     field_name: &String,
     field: &FieldMetadata,
     new_fields: &mut Vec<(String, FieldMetadata)>,
     items: &BTreeMap<String, CompsiteMetadata>,
-    delimeter: &str,
+    delimiter: &str,
 ) {
     // items's name is their type, so if it's in items, it's a compsite data
     // so recursively find it's fields and append to new_fields
     if let Some(compsite) = items.get(field.ty.last().unwrap()) {
         // go through compsite's fields and expand them
-        let full_field_name = format!("{}{}{}", compsite.name, delimeter, field_name);
+        let full_field_name = format!("{}{}{}", compsite.name, delimiter, field_name);
         for field in &compsite.fields {
-            expand_recur(&full_field_name, &field.1, new_fields, items, delimeter);
+            expand_recur(&full_field_name, &field.1, new_fields, items, delimiter);
         }
     } else {
         new_fields.push((field_name.to_string(), field.clone()));
     }
 }
 
-fn compsite_to_markdown(compsite: CompsiteMetadata) -> String {
+fn compsite_to_markdown(compsite: &CompsiteMetadata) -> String {
     let mut output = String::new();
     output.push_str(&format!("# {}\n", compsite.name));
     output.push_str(&format!("{}\n", compsite.doc));
@@ -83,7 +96,7 @@ fn compsite_to_markdown(compsite: CompsiteMetadata) -> String {
         "| --- | -----| ------- | ----------- |\n",
     ];
     output.push_str(&table_header.join(""));
-    for (field_name, field) in compsite.fields {
+    for (field_name, field) in compsite.clone().fields {
         output.push_str(&format!(
             "|{}|{}|{}|{}|\n",
             field_name,
