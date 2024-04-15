@@ -19,4 +19,12 @@ pub struct Opt {
         typ = "String"
     )]
     id: usize,
+    inner: InnerOpt
+}
+
+
+#[derive(Debug, Opt2Doc)]
+pub struct InnerOpt{
+    cfg: bool,
+    ttl: usize
 }

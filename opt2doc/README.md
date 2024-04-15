@@ -1,0 +1,1 @@
+`Opt2Doc` is a derive macro to generate custom markdown docs and toml docs from Rust Source code. It is a part of the `opt2doc` package.

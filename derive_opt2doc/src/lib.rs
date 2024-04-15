@@ -40,7 +40,7 @@ static OPT: once_cell::sync::Lazy<Mutex<DocOpts>> = once_cell::sync::Lazy::new(|
 #[proc_macro_derive(Opt2Doc, attributes(opt2doc))]
 pub fn derive_doc(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as syn::DeriveInput);
-    let input_ident = input.ident.clone();
+
     let mut fields = Vec::new();
     // let first deal with the struct fields
     if let syn::Data::Struct(s) = input.data {

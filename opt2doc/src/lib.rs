@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FieldMetadata {
     pub name: Option<String>,
     pub doc: Option<String>,
@@ -14,7 +14,7 @@ pub struct FieldMetadata {
     pub default: Option<String>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CompsiteMetadata {
     pub name: String,
     pub doc: String,
@@ -58,7 +58,7 @@ impl DocOpts {
             .unwrap();
     }
 
-    // TODO: use append with json line protocol
+    // TODO: use interprocess communication to avoid file IO
     pub fn insert_type(&self, compsite: CompsiteMetadata) {
         serde_jsonlines::append_json_lines(self.tmp_file.clone().unwrap(), vec![compsite]).unwrap();
     }
