@@ -14,6 +14,8 @@ pub struct FieldMetadata {
     pub doc: Option<String>,
     pub ty: Vec<String>,
     pub default: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deprecated: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
