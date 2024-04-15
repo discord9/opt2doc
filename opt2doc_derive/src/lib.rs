@@ -6,9 +6,11 @@ use quote::quote;
 use quote::ToTokens;
 use std::collections::HashMap;
 use std::sync::Mutex;
+use syn::punctuated::Punctuated;
 use syn::Lit::{self};
 use syn::Meta::{self};
 use syn::Result;
+use syn::Token;
 use syn::{parse_macro_input, Attribute, Error, Expr, ExprLit, Field, MetaNameValue};
 /// options for the `opt2doc` derive macro
 static OPT: once_cell::sync::Lazy<Mutex<DocOpts>> = once_cell::sync::Lazy::new(|| {
@@ -103,6 +105,11 @@ fn get_attrs_from_field(field: &Field) -> Result<FieldMetadata> {
             ));
         };
     }
+
+    if doc.deprecated.is_none() {
+        doc.deprecated = Some(get_deprecated_comment(&field.attrs));
+    }
+
     Ok(doc)
 }
 
@@ -170,10 +177,66 @@ fn get_doc_comment(attrs: &[Attribute]) -> String {
         .flat_map(|s| s.split('\n'))
         .collect();
     for line in lines.iter_mut() {
-        if line.starts_with(' ') {
-            *line = &line[1..];
-        }
+        let trimmed = line.trim_start();
+        let trimmed = trimmed.trim_end();
+        *line = trimmed;
     }
 
     lines.join("\n")
+}
+
+/// Extracts the [`deprecated`] attribute from the given attributes.
+///
+/// Returns:
+/// - "true": if it's `#[deprecated]`
+/// - "message": if it's `#[deprecated = "message"]`
+/// - "since" and "note": if it's `#[deprecated(since = "version", note = "message")]`
+///
+/// [`deprecated`]: https://doc.rust-lang.org/reference/attributes/diagnostics.html#the-deprecated-attribute
+fn get_deprecated_comment(attrs: &[Attribute]) -> String {
+    let message_parts = attrs
+        .iter()
+        .filter(|attr| attr.path().is_ident("deprecated"))
+        .filter_map(|attr| match &attr.meta {
+            Meta::NameValue(MetaNameValue { value, .. }) => {
+                if let Expr::Lit(ExprLit {
+                    lit: Lit::Str(s), ..
+                }) = value
+                {
+                    Some(s.value())
+                } else {
+                    None
+                }
+            }
+            Meta::List(list) => {
+                let mut since = String::new();
+                let mut note = String::new();
+
+                for nested in list
+                    .parse_args_with(Punctuated::<MetaNameValue, Token![,]>::parse_terminated)
+                    .ok()?
+                {
+                    let MetaNameValue { path, value, .. } = nested;
+                    let value = if let Expr::Lit(ExprLit {
+                        lit: Lit::Str(s), ..
+                    }) = value
+                    {
+                        s.value()
+                    } else {
+                        return None;
+                    };
+                    if path.is_ident("since") {
+                        since = format!("since: {}", value);
+                    } else if path.is_ident("note") {
+                        note = format!("note: {}", value);
+                    }
+                }
+
+                Some(format!("{}, {}", since, note))
+            }
+            _ => Some("true".to_string()),
+        })
+        .collect::<Vec<_>>();
+
+    message_parts.join("\n")
 }
