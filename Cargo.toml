@@ -1,6 +1,10 @@
 [workspace]
 members = ["derive_opt2doc", "opt2doc", "test_derive"]
 resolver = "2"
+license = "MIT"
+description = "A tool to generate documentation from Rust source code"
+repository = "https://github.com/discord9/opt2doc"
+readme = "README.md"
 
 [workspace.dependencies]
 trybuild = "1.0.91"
