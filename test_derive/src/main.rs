@@ -1,23 +1,21 @@
 use std::{fs::OpenOptions, sync::Mutex};
 
-use derive_rust2md::{Rust2Md, doc_impl};
+use derive_opt2doc::{doc_impl, Opt2Doc};
 use once_cell::sync::Lazy;
 
 fn main() {
-    
     println!("Hello, world!");
 }
 
-
 /// Test opt
-#[derive(Debug, Rust2Md)]
+#[derive(Debug, Opt2Doc)]
 pub struct Opt {
-    /// afa
+    /// afa a
     name: String,
     /// The timezone of the system
-    #[rust2md(
-        rename = "cfg_name",
-        default = "UTC",
+    #[opt2doc(
+        rename = "cfg_name", 
+        default = "UTC", 
         typ = "String"
     )]
     id: usize,

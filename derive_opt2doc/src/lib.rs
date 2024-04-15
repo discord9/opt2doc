@@ -1,16 +1,16 @@
 use darling::ast::NestedMeta;
 use darling::FromMeta;
+use opt2doc::{CompsiteMetadata, DocOpts, FieldMetadata};
 use proc_macro::TokenStream;
 use quote::quote;
 use quote::ToTokens;
-use rust2md::{CompsiteMetadata, DocOpts, FieldMetadata};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use syn::Lit::{self, Str};
 use syn::Meta::{self, NameValue};
 use syn::{parse_macro_input, Attribute, Error, Expr, ExprLit, Field, MetaNameValue};
 use syn::{MetaList, Result};
-/// options for the `rust2md` derive macro
+/// options for the `opt2doc` derive macro
 static OPT: once_cell::sync::Lazy<Mutex<DocOpts>> = once_cell::sync::Lazy::new(|| {
     Mutex::new({
         let opt = DocOpts::read_opts();
@@ -22,11 +22,11 @@ static OPT: once_cell::sync::Lazy<Mutex<DocOpts>> = once_cell::sync::Lazy::new(|
 /// `Rust2Md` is a derive macro that generates documentation for end user for i.e. cli options or
 /// config file options.
 ///
-/// use `rust2md` on field more to generate markdown documentation.
+/// use `opt2doc` on field more to generate markdown documentation.
 ///
 /// i.e. the full attritube list are
 ///
-/// `#[rust2md(rename = "cfg_name", default="UTC", typ="String", doc="The timezone of the system")]`
+/// `#[opt2doc(rename = "cfg_name", default="UTC", typ="String", doc="The timezone of the system")]`
 ///
 /// where `rename` means the name of the
 /// option in the config file and `default` is the default value of the option.
@@ -37,7 +37,7 @@ static OPT: once_cell::sync::Lazy<Mutex<DocOpts>> = once_cell::sync::Lazy::new(|
 ///
 /// if any of those is missing, this macro will try it's best to extract the information from the
 /// struct field definition.
-#[proc_macro_derive(Rust2Md, attributes(rust2md))]
+#[proc_macro_derive(Opt2Doc, attributes(opt2doc))]
 pub fn derive_doc(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as syn::DeriveInput);
     let input_ident = input.ident.clone();
@@ -45,7 +45,7 @@ pub fn derive_doc(input: TokenStream) -> TokenStream {
     // let first deal with the struct fields
     if let syn::Data::Struct(s) = input.data {
         for field in s.fields {
-            // 1. read `rust2md` attribute's key val pairs
+            // 1. read `opt2doc` attribute's key val pairs
             let raw_doc = match get_attrs_from_field(&field) {
                 Ok(v) => v,
                 Err(e) => return e.to_compile_error().into(),
@@ -61,7 +61,9 @@ pub fn derive_doc(input: TokenStream) -> TokenStream {
     };
 
     let out_str = serde_json::to_string_pretty(&compsite).unwrap();
+    // only generate doc if running `cargo doc`
     quote! {
+        #[cfg(doc)]
         doc_impl!(#out_str);
     }
     .into()
@@ -73,14 +75,12 @@ pub fn doc_impl(input: TokenStream) -> TokenStream {
     let s: String = serde_json::from_str(&input.to_string()).unwrap();
 
     let compsite: CompsiteMetadata = serde_json::from_str(&s).unwrap();
-    OPT.lock()
-        .unwrap()
-        .insert_type(compsite.name.clone(), compsite);
+    OPT.lock().unwrap().insert_type(compsite);
     quote! {}.into()
 }
 
 fn get_attrs_from_field(field: &Field) -> Result<FieldMetadata> {
-    let mut doc = parse_rust2md_attrs(field)?;
+    let mut doc = parse_opt2doc_attrs(field)?;
     if doc.name.is_none() {
         doc.name = Some(field.ident.as_ref().unwrap().to_string());
     }
@@ -108,14 +108,14 @@ fn get_attrs_from_field(field: &Field) -> Result<FieldMetadata> {
 
 /// a full example of all the attributes:
 ///  
-/// `#[rust2md(rename = "cfg_name", default="UTC", type="String", doc="The timezone of the system")]`
-fn parse_rust2md_attrs(field: &Field) -> Result<FieldMetadata> {
-    // first get attribute with name of `rust2md`
+/// `#[opt2doc(rename = "cfg_name", default="UTC", type="String", doc="The timezone of the system")]`
+fn parse_opt2doc_attrs(field: &Field) -> Result<FieldMetadata> {
+    // first get attribute with name of `opt2doc`
     let mut doc = FieldMetadata::default();
     let attr = if let Some(attr) = field
         .attrs
         .iter()
-        .find(|attr| attr.path().is_ident("rust2md"))
+        .find(|attr| attr.path().is_ident("opt2doc"))
     {
         attr
     } else {
@@ -124,7 +124,7 @@ fn parse_rust2md_attrs(field: &Field) -> Result<FieldMetadata> {
     let attr_meta_list = if let Meta::List(list) = &attr.meta {
         list
     } else {
-        return Err(Error::new_spanned(attr, "expected #[rust2md(...)]"));
+        return Err(Error::new_spanned(attr, "expected #[opt2doc(...)]"));
     };
     let meta_list = NestedMeta::parse_meta_list(attr_meta_list.tokens.clone())?;
 
@@ -175,5 +175,5 @@ fn get_doc_comment(attrs: &[Attribute]) -> String {
         }
     }
 
-    comment_parts.join("\n")
+    lines.join("\n")
 }

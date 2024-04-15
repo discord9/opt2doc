@@ -1,5 +1,5 @@
 [workspace]
-members = ["derive_rust2md", "rust2md", "test_derive"]
+members = ["derive_opt2doc", "opt2doc", "test_derive"]
 resolver = "2"
 
 [workspace.dependencies]

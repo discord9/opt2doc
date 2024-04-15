@@ -6,5 +6,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-derive_rust2md = { path = "../derive_rust2md" }
+derive_opt2doc = { path = "../derive_opt2doc" }
 once_cell = "1.19.0"
