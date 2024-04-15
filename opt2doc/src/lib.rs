@@ -14,8 +14,7 @@ pub struct FieldMetadata {
     pub doc: Option<String>,
     pub ty: Vec<String>,
     pub default: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub deprecated: Option<bool>,
+    pub deprecated: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -175,7 +174,7 @@ pub fn compsite_to_markdown(compsite: &CompsiteMetadata) -> String {
             field.ty.join("."),
             field.default.unwrap_or("--".to_string()),
             field.doc.unwrap_or("--".to_string()),
-            field.deprecated.unwrap_or(false)
+            field.deprecated.unwrap_or("--".to_string())
         ));
     }
     output
