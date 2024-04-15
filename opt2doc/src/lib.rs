@@ -14,6 +14,8 @@ pub struct FieldMetadata {
     pub doc: Option<String>,
     pub ty: Vec<String>,
     pub default: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deprecated: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -162,17 +164,18 @@ pub fn compsite_to_markdown(compsite: &CompsiteMetadata) -> String {
     output.push_str(&format!("{}\n", compsite.doc));
 
     let table_header = [
-        "| Key | Type | Default | Descriptions |\n",
-        "| --- | -----| ------- | ----------- |\n",
+        "| Key | Type | Default | Descriptions | Deprecated |\n",
+        "| --- | ---- | ------- | ------------ | ---------- |\n",
     ];
     output.push_str(&table_header.join(""));
     for (field_name, field) in compsite.clone().fields {
         output.push_str(&format!(
-            "|{}|{}|{}|{}|\n",
+            "|{}|{}|{}|{}|{}|\n",
             field_name,
             field.ty.join("."),
             field.default.unwrap_or("--".to_string()),
             field.doc.unwrap_or("--".to_string()),
+            field.deprecated.unwrap_or(false)
         ));
     }
     output
