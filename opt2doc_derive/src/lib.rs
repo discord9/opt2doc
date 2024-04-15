@@ -64,7 +64,7 @@ pub fn derive_doc(input: TokenStream) -> TokenStream {
     // only generate doc if running `cargo doc`
     quote! {
         #[cfg(doc)]
-        derive_opt2doc::doc_impl!(#out_str);
+        opt2doc_derive::doc_impl!(#out_str);
     }
     .into()
 }

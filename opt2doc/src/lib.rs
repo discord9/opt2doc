@@ -52,7 +52,7 @@ impl DocOpts {
             .expect("Create opt2doc folder in target directory");
         let _ = OpenOptions::new()
             .create(true)
-            .write(true)
+            .append(true)
             .open(self.tmp_file.clone().unwrap())
             .unwrap();
     }

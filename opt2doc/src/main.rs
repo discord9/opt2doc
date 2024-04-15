@@ -77,9 +77,9 @@ fn expand_recur(
     // so recursively find it's fields and append to new_fields
     if let Some(compsite) = items.get(field.ty.last().unwrap()) {
         // go through compsite's fields and expand them
-        let full_field_name = format!("{}{}{}", compsite.name, delimiter, field_name);
-        for field in &compsite.fields {
-            expand_recur(&full_field_name, &field.1, new_fields, items, delimiter);
+        for (inner_field_name, inner_field) in &compsite.fields {
+            let full_field_name = format!("{}{}{}", compsite.name, delimiter, inner_field_name);
+            expand_recur(&full_field_name, inner_field, new_fields, items, delimiter);
         }
     } else {
         new_fields.push((field_name.to_string(), field.clone()));

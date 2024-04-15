@@ -1,5 +1,5 @@
 [workspace]
-members = ["derive_opt2doc", "opt2doc", "test_derive"]
+members = ["opt2doc_derive", "opt2doc", "test_derive"]
 resolver = "2"
 license = "MIT"
 description = "A tool to generate documentation from Rust source code"

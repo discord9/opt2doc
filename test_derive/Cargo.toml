@@ -5,10 +5,9 @@ edition = "2021"
 license = "MIT"
 description = "A tool to generate documentation from Rust source code"
 repository = "https://github.com/discord9/opt2doc"
-readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-derive_opt2doc = { path = "../derive_opt2doc" }
+opt2doc_derive = { path = "../opt2doc_derive" }
 once_cell = "1.19.0"

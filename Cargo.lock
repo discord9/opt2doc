@@ -38,22 +38,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derive_opt2doc"
-version = "0.1.0"
-dependencies = [
- "darling",
- "once_cell",
- "opt2doc",
- "proc-macro2",
- "quote",
- "serde",
- "serde-jsonlines",
- "serde_json",
- "syn",
- "trybuild",
-]
-
-[[package]]
 name = "either"
 version = "1.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -135,6 +119,22 @@ dependencies = [
  "serde-jsonlines",
  "serde_json",
  "toml",
+]
+
+[[package]]
+name = "opt2doc_derive"
+version = "0.1.0"
+dependencies = [
+ "darling",
+ "once_cell",
+ "opt2doc",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "serde-jsonlines",
+ "serde_json",
+ "syn",
+ "trybuild",
 ]
 
 [[package]]
@@ -241,8 +241,8 @@ dependencies = [
 name = "test_derive"
 version = "0.1.0"
 dependencies = [
- "derive_opt2doc",
  "once_cell",
+ "opt2doc_derive",
 ]
 
 [[package]]

@@ -1,5 +1,5 @@
 [package]
-name = "derive_opt2doc"
+name = "opt2doc_derive"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
@@ -15,7 +15,7 @@ proc-macro2.workspace = true
 quote.workspace = true
 syn.workspace = true
 trybuild.workspace = true
-opt2doc = { path = "../opt2doc" }
+opt2doc = {version = "0.1.0",path = "../opt2doc"}
 once_cell = "1.19.0"
 serde.workspace = true
 serde_json.workspace = true

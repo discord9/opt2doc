@@ -1,6 +1,6 @@
 #![allow(unused)]
 // TODO: use trybuild for macro test
-use derive_opt2doc::Opt2Doc;
+use opt2doc_derive::Opt2Doc;
 
 fn main() {
     println!("Hello, world!");
