@@ -6,7 +6,7 @@ use clap::{command, Parser, ValueEnum};
 #[command(version, about, long_about = None)]
 pub struct Args {
     /// Repo dir to search for the cargo workspace.
-    #[arg(short, long, default_value = ".")]
+    #[arg(long, default_value = ".")]
     pub repo: PathBuf,
 
     /// The path output files.
@@ -19,7 +19,7 @@ pub struct Args {
 
     /// Name of the root option struct. Setting this will ignore all other options
     /// that are not accessible from the given root.
-    #[arg(short, long)]
+    #[arg(long)]
     pub root: Option<String>,
 
     /// The path of config file. E.g., `./opt2doc.toml`.
