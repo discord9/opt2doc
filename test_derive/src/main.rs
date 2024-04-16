@@ -30,6 +30,6 @@ pub struct Deprecated {
     plain: String,
     #[deprecated = "some deprecate message"]
     with_message: String,
-    #[deprecated(since = "v0.1.1", note = "another deprecate message")]
+    #[deprecated(since = "0.1.1", note = "another deprecate message")]
     since_and_note: String,
 }

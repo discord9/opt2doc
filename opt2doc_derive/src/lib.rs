@@ -5,6 +5,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use quote::ToTokens;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Mutex;
 use syn::punctuated::Punctuated;
 use syn::Lit::{self};
@@ -15,8 +16,8 @@ use syn::{parse_macro_input, Attribute, Error, Expr, ExprLit, Field, MetaNameVal
 /// options for the `opt2doc` derive macro
 static OPT: once_cell::sync::Lazy<Mutex<DocOpts>> = once_cell::sync::Lazy::new(|| {
     Mutex::new({
-        let opt = DocOpts::read_opts();
-        opt.touch();
+        let opt = DocOpts::read_opts(&None);
+        opt.touch(&PathBuf::new());
         opt
     })
 });
