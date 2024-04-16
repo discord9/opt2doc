@@ -1,5 +1,6 @@
 use darling::ast::NestedMeta;
 use darling::FromMeta;
+use opt2doc::DocClientState;
 use opt2doc::{CompsiteMetadata, DocOpts, FieldMetadata};
 use proc_macro::TokenStream;
 use quote::quote;
@@ -13,13 +14,8 @@ use syn::Result;
 use syn::Token;
 use syn::{parse_macro_input, Attribute, Error, Expr, ExprLit, Field, MetaNameValue};
 /// options for the `opt2doc` derive macro
-static OPT: once_cell::sync::Lazy<Mutex<DocOpts>> = once_cell::sync::Lazy::new(|| {
-    Mutex::new({
-        let opt = DocOpts::read_opts();
-        opt.touch();
-        opt
-    })
-});
+static STATE: once_cell::sync::Lazy<Mutex<DocClientState>> =
+    once_cell::sync::Lazy::new(|| Mutex::new(DocClientState::new()));
 
 /// `Rust2Md` is a derive macro that generates documentation for end user for i.e. cli options or
 /// config file options.
@@ -71,13 +67,15 @@ pub fn derive_doc(input: TokenStream) -> TokenStream {
     .into()
 }
 
+/// User normally should never see this macro, since it should only run at `#[cfg(doc)]` and then remove itself
+/// after generating the documentation.
 #[proc_macro]
 pub fn doc_impl(input: TokenStream) -> TokenStream {
     // unescape the input since it's a string that got escaped
     let s: String = serde_json::from_str(&input.to_string()).unwrap();
 
     let compsite: CompsiteMetadata = serde_json::from_str(&s).unwrap();
-    OPT.lock().unwrap().insert_type(compsite);
+    STATE.lock().unwrap().try_insert_type(compsite);
     quote! {}.into()
 }
 
