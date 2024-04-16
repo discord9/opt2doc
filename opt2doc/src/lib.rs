@@ -155,7 +155,9 @@ pub fn run_main() {
             String::new()
         }
         RenderFormat::Markdown => metadata.iter().map(compsite_to_markdown).join("\n\n"),
-        RenderFormat::Toml | RenderFormat::Html => "Not yet implemented".to_string(),
+        RenderFormat::Toml | RenderFormat::Yaml | RenderFormat::Html => {
+            "Not yet implemented".to_string()
+        }
     };
 
     // place it on same directory with tmp file

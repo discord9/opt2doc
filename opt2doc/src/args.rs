@@ -36,6 +36,8 @@ pub enum RenderFormat {
     Markdown,
     /// Render a toml file with all options set to default.
     Toml,
+    /// Render a yaml file with all option set to default.
+    Yaml,
     /// Render a single-page HTML file with all options.
     Html,
     // TODO: support more formats
