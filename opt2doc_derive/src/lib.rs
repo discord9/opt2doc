@@ -1,7 +1,7 @@
 use darling::ast::NestedMeta;
 use darling::FromMeta;
 use opt2doc::DocClientState;
-use opt2doc::{CompsiteMetadata, DocOpts, FieldMetadata};
+use opt2doc::{CompsiteMetadata, FieldMetadata};
 use proc_macro::TokenStream;
 use quote::quote;
 use quote::ToTokens;

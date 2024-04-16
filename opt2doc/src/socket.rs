@@ -2,12 +2,9 @@ use std::{
     collections::BTreeMap,
     io::{ErrorKind, Read, Write},
     net::{SocketAddr, TcpListener, TcpStream},
-    path::PathBuf,
 };
 
-use interprocess::local_socket::prelude::*;
-
-use crate::{CompsiteMetadata, DocOpts};
+use crate::CompsiteMetadata;
 
 /// End of a entire json packet this is ascii's EOT(End of Transmission) control character
 /// which should not appear in a json string

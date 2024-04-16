@@ -1,11 +1,10 @@
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use serde_jsonlines::json_lines;
 use std::{
     collections::BTreeMap,
     fs::{create_dir_all, File, OpenOptions},
     io::{Read, Write},
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 
 use crate::socket::{get_socket_url, DocServerState};
@@ -40,7 +39,7 @@ pub struct DocOpts {
 
 impl Default for DocOpts {
     fn default() -> Self {
-        let mut out_markdown = PathBuf::from("target/opt2doc/out.md");
+        let out_markdown = PathBuf::from("target/opt2doc/out.md");
         create_dir_all(out_markdown.parent().unwrap()).unwrap();
         DocOpts {
             out_markdown: Some(out_markdown),
@@ -57,7 +56,7 @@ impl DocOpts {
             PathBuf::from("opt2doc.toml")
         };
 
-        let mut opt: Self = if let Ok(mut file) = OpenOptions::new().read(true).open(cfg_loc) {
+        let opt: Self = if let Ok(mut file) = OpenOptions::new().read(true).open(cfg_loc) {
             let mut buf = String::new();
             file.read_to_string(&mut buf)
                 .expect("Can't read opt2doc.toml");
