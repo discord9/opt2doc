@@ -7,6 +7,7 @@ use std::{
     io::{Read, Write},
     path::{Path, PathBuf},
 };
+mod ipc;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FieldMetadata {
