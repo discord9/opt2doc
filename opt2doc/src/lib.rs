@@ -2,15 +2,18 @@ mod args;
 
 use args::{Args, RenderFormat};
 use clap::Parser;
-use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use serde_jsonlines::json_lines;
 use std::{
     collections::BTreeMap,
     fs::{create_dir_all, File, OpenOptions},
     io::{Read, Write},
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
+
+use crate::socket::{get_socket_url, DocServerState};
+mod socket;
+
+pub use socket::DocClientState;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FieldMetadata {
@@ -31,19 +34,32 @@ pub struct CompsiteMetadata {
 /// The options for the `opt2doc` derive macro
 ///
 /// TODO: add useful options
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DocOpts {
-    /// default to store at `target/opt2doc/tmp.json`
-    pub tmp_file: Option<Box<Path>>,
+    /// default to store at `target/opt2doc/out.md`
+    pub out_markdown: Option<PathBuf>,
+}
+
+impl Default for DocOpts {
+    fn default() -> Self {
+        let out_markdown = PathBuf::from("target/opt2doc/out.md");
+        create_dir_all(out_markdown.parent().unwrap()).unwrap();
+        DocOpts {
+            out_markdown: Some(out_markdown),
+        }
+    }
 }
 
 impl DocOpts {
+    /// read options either from default location of `opt2doc.toml` or from env var `OPT2DOC_CFG_FILE` determined config file
     pub fn read_opts(file_path: &Option<PathBuf>) -> DocOpts {
-        let Some(file_path) = file_path else {
-            return Default::default();
+        let cfg_loc = if let Ok(cfg_loc) = std::env::var("OPT2DOC_CFG_FILE") {
+            PathBuf::from(cfg_loc)
+        } else {
+            file_path.clone().unwrap_or(PathBuf::from("opt2doc.toml"))
         };
 
-        let mut opt: Self = if let Ok(mut file) = OpenOptions::new().read(true).open(file_path) {
+        let opt: Self = if let Ok(mut file) = OpenOptions::new().read(true).open(cfg_loc) {
             let mut buf = String::new();
             file.read_to_string(&mut buf)
                 .unwrap_or_else(|_| panic!("Can't read {file_path:?}"));
@@ -51,26 +67,7 @@ impl DocOpts {
         } else {
             Default::default()
         };
-        if opt.tmp_file.is_none() {
-            opt.tmp_file = Some(PathBuf::from_iter(["target", "opt2doc", "tmp.json"]).into());
-        }
         opt
-    }
-
-    /// Create the tmp file and it's parent directory(if needed)
-    pub fn touch(&self, output_path: &PathBuf) {
-        // touch and create(or recreate) the file and it's directory
-        create_dir_all(output_path).expect("Create opt2doc folder in target directory");
-        let _ = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(self.tmp_file.clone().unwrap())
-            .unwrap();
-    }
-
-    // TODO: use interprocess communication to avoid file IO
-    pub fn insert_type(&self, compsite: CompsiteMetadata) {
-        serde_jsonlines::append_json_lines(self.tmp_file.clone().unwrap(), vec![compsite]).unwrap();
     }
 }
 
@@ -88,29 +85,55 @@ pub fn run_cargo_doc(repo: &PathBuf) {
     }
 }
 
-pub fn read_from_tmp_file(opt: &DocOpts) -> Vec<CompsiteMetadata> {
-    json_lines::<CompsiteMetadata, _>(opt.tmp_file.clone().unwrap())
-        .unwrap()
-        .collect::<Result<Vec<_>, _>>()
-        .unwrap()
-}
-
 pub fn run_main() {
     let args = Args::parse();
 
-    run_cargo_doc(&args.repo);
-    // 1. read opt2doc.toml and parse into DocOpts
-    // 2. read tmp file, and using json lines to
-    // compact them into BTreeMap<(Name, Compsite)>
-    // 3. output as markdown
     let opt = DocOpts::read_opts(&args.config);
+    let mut server = DocServerState::new(&get_socket_url());
+    let mut handle = std::process::Command::new("cargo")
+        .arg("doc")
+        .current_dir(&args.repo)
+        .spawn()
+        .expect("`cargo doc` command failed to start");
+    let mut ret = Vec::new();
+
+    //main loop
+    loop {
+        // if and only if `cargo doc` exit
+        if handle.try_wait().unwrap().is_some() {
+            break;
+        }
+
+        // first try to accept all incoming connections available
+        while server.try_accept().is_some() {}
+
+        ret.extend(server.try_recv());
+    }
+
+    // render
+    let render_output = match args.render {
+        RenderFormat::None => {
+            // no action needs
+            String::new()
+        }
+        RenderFormat::Markdown => render_markdown(ret, &args.root),
+        RenderFormat::Toml | RenderFormat::Yaml | RenderFormat::Html => {
+            "Not yet implemented".to_string()
+        }
+    };
 
     // early return if no need to render
     if matches!(args.render, RenderFormat::None) {
         return;
     }
 
-    let items = read_from_tmp_file(&opt);
+    // place it on same directory with tmp file
+
+    let mut file = File::create(opt.out_markdown.unwrap()).unwrap();
+    file.write_all(render_output.as_bytes()).unwrap();
+}
+
+fn render_markdown(items: Vec<CompsiteMetadata>, required_root: &Option<String>) -> String {
     let items = items
         .into_iter()
         .map(|item| (item.name.clone(), item))
@@ -129,8 +152,9 @@ pub fn run_main() {
             })
         })
         .collect::<BTreeMap<_, _>>();
+
     // filter root item if specified
-    if let Some(required_root) = &args.root {
+    if let Some(required_root) = required_root {
         root_items.retain(|name, _| *name == required_root);
     }
 
@@ -147,25 +171,11 @@ pub fn run_main() {
         expaned_root.fields = new_fields;
         metadata.push(expaned_root);
     }
-
-    // render
-    let render_output = match args.render {
-        RenderFormat::None => {
-            // no action needs
-            String::new()
-        }
-        RenderFormat::Markdown => metadata.iter().map(compsite_to_markdown).join("\n\n"),
-        RenderFormat::Toml | RenderFormat::Yaml | RenderFormat::Html => {
-            "Not yet implemented".to_string()
-        }
-    };
-
-    // place it on same directory with tmp file
-    let mut loc = opt.tmp_file.unwrap().parent().unwrap().to_path_buf();
-    loc.push("out.md");
-
-    let mut file = File::create(loc).unwrap();
-    file.write_all(render_output.as_bytes()).unwrap();
+    metadata
+        .iter()
+        .map(compsite_to_markdown)
+        .collect::<Vec<_>>()
+        .join("\n\n")
 }
 
 /// expand field with name delimitered by `delimiter`
