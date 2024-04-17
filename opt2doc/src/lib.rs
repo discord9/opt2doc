@@ -90,6 +90,15 @@ pub fn run_main() {
 
     let opt = DocOpts::read_opts(&args.config);
     let mut server = DocServerState::new(&get_socket_url());
+    // first run `cargo doc --clean` to make sure we have the latest doc
+    std::process::Command::new("cargo")
+        .arg("clean")
+        .arg("--doc")
+        .current_dir(&args.repo)
+        .spawn()
+        .unwrap()
+        .wait()
+        .unwrap();
     let mut handle = std::process::Command::new("cargo")
         .arg("doc")
         .current_dir(&args.repo)

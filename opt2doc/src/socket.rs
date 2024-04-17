@@ -45,8 +45,7 @@ impl DocClientState {
                     conn.set_nonblocking(true).unwrap();
                     Some(conn)
                 }
-                Err(e) => {
-                    println!("WARN fail to connect socket: {:?}", e);
+                Err(_) => {
                     None
                 }
             }

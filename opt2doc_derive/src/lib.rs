@@ -75,6 +75,10 @@ pub fn doc_impl(input: TokenStream) -> TokenStream {
     let s: String = serde_json::from_str(&input.to_string()).unwrap();
 
     let compsite: CompsiteMetadata = serde_json::from_str(&s).unwrap();
+    println!(
+        " \u{001b}[1;93m Opt2Doc Documenting for \u{001b}[0m {}",
+        compsite.name
+    );
     STATE.lock().unwrap().try_insert_type(compsite);
     quote! {}.into()
 }
