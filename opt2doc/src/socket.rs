@@ -45,9 +45,7 @@ impl DocClientState {
                     conn.set_nonblocking(true).unwrap();
                     Some(conn)
                 }
-                Err(_) => {
-                    None
-                }
+                Err(_) => None,
             }
         };
         DocClientState { conn }
@@ -66,6 +64,12 @@ impl DocClientState {
 
     /// send a new type to the server
     pub fn try_insert_type(&mut self, compsite: CompsiteMetadata) {
+        if self.is_connected() {
+            println!(
+                " \u{001b}[1;93m Opt2Doc Documenting for \u{001b}[0m {}",
+                compsite.name
+            );
+        }
         let out_str = serde_json::to_string_pretty(&compsite).unwrap();
         self.try_send(format!("{}\n", out_str));
     }

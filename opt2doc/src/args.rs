@@ -5,6 +5,8 @@ use clap::{command, Parser, ValueEnum};
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Args {
+    /// Optional name to operate on
+    name: Option<String>,
     /// Repo dir to search for the cargo workspace.
     #[arg(long, default_value = ".")]
     pub repo: PathBuf,
