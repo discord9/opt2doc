@@ -1,4 +1,7 @@
-use itertools::Itertools;
+mod args;
+
+use args::{Args, RenderFormat};
+use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
@@ -49,18 +52,18 @@ impl Default for DocOpts {
 
 impl DocOpts {
     /// read options either from default location of `opt2doc.toml` or from env var `OPT2DOC_CFG_FILE` determined config file
-    pub fn read_opts() -> DocOpts {
+    pub fn read_opts(file_path: &Option<PathBuf>) -> DocOpts {
         let cfg_loc = if let Ok(cfg_loc) = std::env::var("OPT2DOC_CFG_FILE") {
             PathBuf::from(cfg_loc)
         } else {
-            PathBuf::from("opt2doc.toml")
+            file_path.clone().unwrap_or(PathBuf::from("opt2doc.toml"))
         };
 
         let opt: Self = if let Ok(mut file) = OpenOptions::new().read(true).open(cfg_loc) {
             let mut buf = String::new();
             file.read_to_string(&mut buf)
-                .expect("Can't read opt2doc.toml");
-            toml::from_str(&buf).expect("Can't parse opt2doc.toml")
+                .unwrap_or_else(|_| panic!("Can't read {file_path:?}"));
+            toml::from_str(&buf).unwrap_or_else(|_| panic!("Can't parse {file_path:?}"))
         } else {
             Default::default()
         };
@@ -68,10 +71,11 @@ impl DocOpts {
     }
 }
 
-pub fn run_cargo_doc() {
+pub fn run_cargo_doc(repo: &PathBuf) {
     // first call cargo doc
     let output = std::process::Command::new("cargo")
         .arg("doc")
+        .current_dir(repo)
         .spawn()
         .unwrap()
         .wait()
@@ -82,10 +86,13 @@ pub fn run_cargo_doc() {
 }
 
 pub fn run_main() {
-    let opt = DocOpts::read_opts();
+    let args = Args::parse();
+
+    let opt = DocOpts::read_opts(&args.config);
     let mut server = DocServerState::new(&get_socket_url());
     let mut handle = std::process::Command::new("cargo")
         .arg("doc")
+        .current_dir(&args.repo)
         .spawn()
         .expect("`cargo doc` command failed to start");
     let mut ret = Vec::new();
@@ -103,15 +110,30 @@ pub fn run_main() {
         ret.extend(server.try_recv());
     }
 
-    let rendered = render_markdown(ret);
+    // render
+    let render_output = match args.render {
+        RenderFormat::None => {
+            // no action needs
+            String::new()
+        }
+        RenderFormat::Markdown => render_markdown(ret, &args.root),
+        RenderFormat::Toml | RenderFormat::Yaml | RenderFormat::Html => {
+            "Not yet implemented".to_string()
+        }
+    };
+
+    // early return if no need to render
+    if matches!(args.render, RenderFormat::None) {
+        return;
+    }
 
     // place it on same directory with tmp file
 
     let mut file = File::create(opt.out_markdown.unwrap()).unwrap();
-    file.write_all(rendered.as_bytes()).unwrap();
+    file.write_all(render_output.as_bytes()).unwrap();
 }
 
-fn render_markdown(items: Vec<CompsiteMetadata>) -> String {
+fn render_markdown(items: Vec<CompsiteMetadata>, required_root: &Option<String>) -> String {
     let items = items
         .into_iter()
         .map(|item| (item.name.clone(), item))
@@ -119,7 +141,7 @@ fn render_markdown(items: Vec<CompsiteMetadata>) -> String {
 
     // find out all root items, which is items that are not
     // referenced by any other items
-    let root_items = items
+    let mut root_items = items
         .iter()
         .filter(|(name, _)| {
             let typ = name;
@@ -131,8 +153,13 @@ fn render_markdown(items: Vec<CompsiteMetadata>) -> String {
         })
         .collect::<BTreeMap<_, _>>();
 
+    // filter root item if specified
+    if let Some(required_root) = required_root {
+        root_items.retain(|name, _| *name == required_root);
+    }
+
     // starting from root items, recursively find all items
-    let mut out_markdown: Vec<CompsiteMetadata> = Vec::new();
+    let mut metadata: Vec<CompsiteMetadata> = Vec::new();
     for (_, root) in root_items {
         // recursively find compsite items and expand them into new_fields
         let mut expaned_root = root.clone();
@@ -142,9 +169,13 @@ fn render_markdown(items: Vec<CompsiteMetadata>) -> String {
         }
 
         expaned_root.fields = new_fields;
-        out_markdown.push(expaned_root);
+        metadata.push(expaned_root);
     }
-    out_markdown.iter().map(compsite_to_markdown).join("\n\n")
+    metadata
+        .iter()
+        .map(compsite_to_markdown)
+        .collect::<Vec<_>>()
+        .join("\n\n")
 }
 
 /// expand field with name delimitered by `delimiter`
