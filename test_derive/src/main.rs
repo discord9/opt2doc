@@ -1,9 +1,18 @@
 #![allow(unused)]
+use std::path::PathBuf;
+
 // TODO: use trybuild for macro test
 use opt2doc_derive::Opt2Doc;
 
 fn main() {
     println!("Hello, world!");
+}
+
+
+#[derive(Debug, Opt2Doc)]
+pub struct AnotherRoot {
+    field1: bool,
+    field2: String,
 }
 
 /// Test opt

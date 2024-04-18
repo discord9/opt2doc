@@ -5,8 +5,8 @@ use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
-    fs::{create_dir_all, File, OpenOptions},
-    io::{Read, Write},
+    fs::{create_dir_all, File},
+    io::Write,
     path::PathBuf,
 };
 
@@ -31,46 +31,6 @@ pub struct CompsiteMetadata {
     pub fields: Vec<(String, FieldMetadata)>,
 }
 
-/// The options for the `opt2doc` derive macro
-///
-/// TODO: add useful options
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DocOpts {
-    /// default to store at `target/opt2doc/out.md`
-    pub out_markdown: Option<PathBuf>,
-}
-
-impl Default for DocOpts {
-    fn default() -> Self {
-        let out_markdown = PathBuf::from("target/opt2doc/out.md");
-        create_dir_all(out_markdown.parent().unwrap()).unwrap();
-        DocOpts {
-            out_markdown: Some(out_markdown),
-        }
-    }
-}
-
-impl DocOpts {
-    /// read options either from default location of `opt2doc.toml` or from env var `OPT2DOC_CFG_FILE` determined config file
-    pub fn read_opts(file_path: &Option<PathBuf>) -> DocOpts {
-        let cfg_loc = if let Ok(cfg_loc) = std::env::var("OPT2DOC_CFG_FILE") {
-            PathBuf::from(cfg_loc)
-        } else {
-            file_path.clone().unwrap_or(PathBuf::from("opt2doc.toml"))
-        };
-
-        let opt: Self = if let Ok(mut file) = OpenOptions::new().read(true).open(cfg_loc) {
-            let mut buf = String::new();
-            file.read_to_string(&mut buf)
-                .unwrap_or_else(|_| panic!("Can't read {file_path:?}"));
-            toml::from_str(&buf).unwrap_or_else(|_| panic!("Can't parse {file_path:?}"))
-        } else {
-            Default::default()
-        };
-        opt
-    }
-}
-
 pub fn run_cargo_doc(repo: &PathBuf) {
     // first call cargo doc
     let output = std::process::Command::new("cargo")
@@ -88,7 +48,6 @@ pub fn run_cargo_doc(repo: &PathBuf) {
 pub fn run_main() {
     let args = Args::parse();
 
-    let opt = DocOpts::read_opts(&args.config);
     let mut server = DocServerState::new(&get_socket_url());
     // first run `cargo doc --clean` to make sure we have the latest doc
     std::process::Command::new("cargo")
@@ -123,26 +82,44 @@ pub fn run_main() {
     let render_output = match args.render {
         RenderFormat::None => {
             // no action needs
-            String::new()
+            // early return if no need to render
+            return;
         }
         RenderFormat::Markdown => render_markdown(ret, &args.root),
         RenderFormat::Toml | RenderFormat::Yaml | RenderFormat::Html => {
-            "Not yet implemented".to_string()
+            todo!("Not yet implemented")
         }
     };
 
-    // early return if no need to render
-    if matches!(args.render, RenderFormat::None) {
-        return;
+    // place all markdown files on same directory with tmp file
+    for (filename, content) in render_output {
+        let full_path = args.output.clone().join(format!("{}.md", filename));
+        create_dir_all(full_path.parent().unwrap()).unwrap();
+        let mut file = File::create(full_path).unwrap();
+        file.write_all(content.as_bytes()).unwrap();
     }
-
-    // place it on same directory with tmp file
-
-    let mut file = File::create(opt.out_markdown.unwrap()).unwrap();
-    file.write_all(render_output.as_bytes()).unwrap();
 }
 
-fn render_markdown(items: Vec<CompsiteMetadata>, required_root: &Option<String>) -> String {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+enum Value {
+    String(String),
+    Number(f64),
+    Bool(bool),
+    Array(Vec<Value>),
+    Object(BTreeMap<String, Value>),
+}
+
+/// Using toml_edit to generate example.toml with default values and comments
+fn render_toml(items: Vec<CompsiteMetadata>, required_root: &Option<String>) -> String {
+    todo!()
+}
+
+/// returns a key-value pair of filename and markdown content
+fn render_markdown(
+    items: Vec<CompsiteMetadata>,
+    required_roots: &Option<Vec<String>>,
+) -> Vec<(String, String)> {
     let items = items
         .into_iter()
         .map(|item| (item.name.clone(), item))
@@ -163,8 +140,8 @@ fn render_markdown(items: Vec<CompsiteMetadata>, required_root: &Option<String>)
         .collect::<BTreeMap<_, _>>();
 
     // filter root item if specified
-    if let Some(required_root) = required_root {
-        root_items.retain(|name, _| *name == required_root);
+    if let Some(required_roots) = required_roots {
+        root_items.retain(|name, _| required_roots.contains(name));
     }
 
     // starting from root items, recursively find all items
@@ -182,9 +159,8 @@ fn render_markdown(items: Vec<CompsiteMetadata>, required_root: &Option<String>)
     }
     metadata
         .iter()
-        .map(compsite_to_markdown)
-        .collect::<Vec<_>>()
-        .join("\n\n")
+        .map(|item| (item.name.clone(), compsite_to_markdown(item)))
+        .collect()
 }
 
 /// expand field with name delimitered by `delimiter`
@@ -223,10 +199,16 @@ pub fn compsite_to_markdown(compsite: &CompsiteMetadata) -> String {
             "|{}|{}|{}|{}|{}|\n",
             field_name,
             field.ty.join("."),
-            field.default.unwrap_or("--".to_string()),
-            field.doc.unwrap_or("--".to_string()),
-            field.deprecated.unwrap_or("--".to_string())
+            escape_markdown_in_cell_newline(&field.default.unwrap_or("--".to_string())),
+            escape_markdown_in_cell_newline(&field.doc.unwrap_or("--".to_string())),
+            escape_markdown_in_cell_newline(&field.deprecated.unwrap_or("--".to_string()))
         ));
     }
     output
+}
+
+/// Escape markdown in cell and replace newline with `  \\n`
+/// TODO: make this more robust
+fn escape_markdown_in_cell_newline(s: &str) -> String {
+    s.replace('\n', "  \\n  ")
 }

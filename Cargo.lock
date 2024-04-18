@@ -216,6 +216,22 @@ version = "0.1.2"
 dependencies = [
  "clap",
  "itertools",
+ "opt2doc_derive 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
+ "serde-jsonlines",
+ "serde_json",
+ "toml",
+ "toml_edit",
+]
+
+[[package]]
+name = "opt2doc"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92c5116139ee89ab9a65a5c674e836b8df25d3cf14a02952dd82136f9da72a5f"
+dependencies = [
+ "clap",
+ "itertools",
  "serde",
  "serde-jsonlines",
  "serde_json",
@@ -228,7 +244,25 @@ version = "0.1.2"
 dependencies = [
  "darling",
  "once_cell",
- "opt2doc",
+ "opt2doc 0.1.2",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "serde-jsonlines",
+ "serde_json",
+ "syn",
+ "trybuild",
+]
+
+[[package]]
+name = "opt2doc_derive"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ffaa746bd212c616165cc5bc6760b6ce28f9ad1ab5a6a964515186249c311fdf"
+dependencies = [
+ "darling",
+ "once_cell",
+ "opt2doc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "proc-macro2",
  "quote",
  "serde",
@@ -349,7 +383,7 @@ name = "test_derive"
 version = "0.1.0"
 dependencies = [
  "once_cell",
- "opt2doc_derive",
+ "opt2doc_derive 0.1.2",
 ]
 
 [[package]]

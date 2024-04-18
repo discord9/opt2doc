@@ -17,7 +17,7 @@ use syn::{parse_macro_input, Attribute, Error, Expr, ExprLit, Field, MetaNameVal
 static STATE: once_cell::sync::Lazy<Mutex<DocClientState>> =
     once_cell::sync::Lazy::new(|| Mutex::new(DocClientState::new()));
 
-/// `Rust2Md` is a derive macro that generates documentation for end user for i.e. cli options or
+/// `Opt2Doc` is a derive macro that generates documentation for end user for i.e. cli options or
 /// config file options.
 ///
 /// use `opt2doc` on field more to generate markdown documentation.

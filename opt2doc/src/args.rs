@@ -1,28 +1,32 @@
 use std::path::PathBuf;
 
 use clap::{command, Parser, ValueEnum};
+use opt2doc_derive::Opt2Doc;
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Opt2Doc)]
 #[command(version, about, long_about = None)]
 pub struct Args {
     /// Optional name to operate on
     name: Option<String>,
     /// Repo dir to search for the cargo workspace.
     #[arg(long, default_value = ".")]
+    #[opt2doc(default = ".")]
     pub repo: PathBuf,
 
     /// The path output files.
     #[arg(short, long, default_value = "target/opt2doc/")]
+    #[opt2doc(default = "target/opt2doc/", typ = "String")]
     pub output: PathBuf,
 
     /// Format to render.
     #[arg(short, long, value_enum)]
+    #[opt2doc(typ = "Markdown/Toml/Yml/Html", default = "None")]
     pub render: RenderFormat,
 
     /// Name of the root option struct. Setting this will ignore all other options
     /// that are not accessible from the given root.
     #[arg(long)]
-    pub root: Option<String>,
+    pub root: Option<Vec<String>>,
 
     /// The path of config file. E.g., `./opt2doc.toml`.
     #[arg(short, long)]
