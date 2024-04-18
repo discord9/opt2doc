@@ -18,9 +18,9 @@ pub struct Args {
     #[opt2doc(default = "target/opt2doc/", typ = "String")]
     pub output: PathBuf,
 
-    /// Format to render.
+    /// Format to render. Options are `Markdown/Toml/Yml/Html`
     #[arg(short, long, value_enum)]
-    #[opt2doc(typ = "Markdown/Toml/Yml/Html", default = "None")]
+    #[opt2doc(default = "None")]
     pub render: RenderFormat,
 
     /// Name of the root option struct. Setting this will ignore all other options

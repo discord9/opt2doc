@@ -13,3 +13,9 @@ This reposity contains two packages:
 |root|Option|--|Name of the root option struct. Setting this will ignore all other options
 that are not accessible from the given root.||
 |config|Option|--|The path of config file. E.g., `./opt2doc.toml`.||
+
+# Road Map
+
+- support `enum` derive
+- support add `#[opt2doc(skip)]` to skip some fields
+- support add link to type using rustdoc's json output(Maybe using `trustfall_rustdoc`)
